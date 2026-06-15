@@ -1,9 +1,10 @@
 {
   "name": "task-planner",
   "version": "1.0.0",
-  "description": "Task Planner (client + serverless API on Vercel)",
+  "description": "Task Planner (client + API server)",
   "private": true,
   "scripts": {
+    "start": "node server/server.js",
     "dev": "node server/server.js"
   },
   "dependencies": {

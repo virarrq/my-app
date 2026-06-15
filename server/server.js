@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const authMiddleware = require('./middleware/auth');
@@ -11,6 +12,9 @@ const PORT = process.env.PORT || 3000;
 // Подключаем middleware
 app.use(cors());
 app.use(express.json());
+
+// Раздаём статику клиента (фронтенд и API на одном домене)
+app.use(express.static(path.join(__dirname, '..', 'client')));
 
 // Проверка работоспособности сервера
 app.get('/health', (req, res) => {
@@ -31,7 +35,7 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Локальный запуск (на Vercel не выполняется — там используется serverless-функция)
+// Запуск сервера (Render / локально). На Vercel вместо этого используется serverless-функция.
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
