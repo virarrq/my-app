@@ -25,7 +25,12 @@ export async function getAccessToken() {
 async function register(email, password) {
   const { data, error } = await supabase.auth.signUp({
     email,
-    password
+    password,
+    options: {
+      // Куда Supabase вернёт пользователя по ссылке из письма-подтверждения.
+      // Используем текущий домен, чтобы работало и на Render, и локально.
+      emailRedirectTo: `${window.location.origin}/auth-callback.html`
+    }
   });
 
   if (error) throw error;

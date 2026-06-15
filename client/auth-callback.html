@@ -116,36 +116,51 @@
 
     async function handleAuthCallback() {
       try {
-        // Get hash parameters from URL
+        const url = new URL(window.location.href);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-        const type = hashParams.get('type');
 
-        if (!accessToken) {
-          throw new Error('Токен не найден в URL');
+        // Supabase мог вернуть ошибку прямо в ссылке
+        const errorDescription = url.searchParams.get('error_description') || hashParams.get('error_description');
+        if (errorDescription) {
+          throw new Error(errorDescription);
         }
 
-        // Set session with the tokens
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken
-        });
+        // supabase-js (detectSessionInUrl) сам разбирает ссылку при загрузке —
+        // и hash-токены, и ?code= (PKCE). getSession() дожидается этого разбора.
+        let session = (await supabase.auth.getSession()).data.session;
 
-        if (error) throw error;
+        // Запасной путь, если автоматический разбор не сработал
+        if (!session) {
+          const code = url.searchParams.get('code');
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+
+          if (code) {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            if (error) throw error;
+            session = data.session;
+          } else if (accessToken) {
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            if (error) throw error;
+            session = data.session;
+          }
+        }
+
+        if (!session) {
+          throw new Error('Не удалось получить сессию из ссылки');
+        }
 
         // Show success
         document.getElementById('loading').style.display = 'none';
         document.getElementById('success').style.display = 'block';
 
-        // Redirect to main app after 2 seconds
+        // Пользователь подтверждён и уже авторизован — ведём в приложение
         setTimeout(() => {
-          if (type === 'signup') {
-            window.location.href = 'login.html';
-          } else {
-            window.location.href = 'index.html';
-          }
-        }, 2000);
+          window.location.href = 'dashboard.html';
+        }, 1500);
 
       } catch (error) {
         console.error('Auth callback error:', error);
